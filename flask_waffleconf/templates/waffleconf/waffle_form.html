@@ -1,0 +1,24 @@
+<h1>Config values</h1>
+<form action="" method="POST">
+{% for config in configs %}
+</div>
+    <label for="{{ config['key'] }}">
+        {{ config['key'] }}
+    </label>
+
+    {% if config['type'] == 'json' %}
+        <textarea id="{{ config['key'] }}" name="{{ config['key'] }}">
+            {{ config['value'] }}
+        </textarea>
+    {% else %}
+        <input
+            id="{{ config['key'] }}"
+            type="text"
+            value="{{ config['value'] }}"
+            name="{{ config['key'] }}">
+    {% endif %}
+</div>
+{% endfor %}
+
+    <button type="submit">Submit</button>
+</form>
