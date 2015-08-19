@@ -76,5 +76,3 @@ waffle = WaffleConf(app, configstore)
 # Plug the WaffleConf view to any of your Blueprints
 register_waffle(app, 'waffleconf', '/config')
 ~~~
-
-

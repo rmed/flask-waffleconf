@@ -7,7 +7,12 @@ application configuration everytime any of these change.
 # Contents
 
 - **[Quickstart](quickstart.md)**
-- **[API](api.md)**
+- **API**
+    - **[Configuration](api/configuration.md)**
+    - **[Model](api/model.md)**
+    - **[Store](api/store.md)**
+    - **[WaffleConf](api/waffleconf.md)**
+    - **[Views](api/views.md)**
 
 # Links
 

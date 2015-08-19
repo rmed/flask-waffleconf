@@ -19,6 +19,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from setuptools import setup
+from os import path
+
+here = path.abspath(path.dirname(__file__))
+
+# Get the long description
+with open(path.join(here, 'DESCRIPTION.rst')) as f:
+    long_description = f.read()
 
 
 setup(
@@ -29,7 +36,7 @@ setup(
     author='Rafael Medina García',
     author_email='rafamedgar@gmail.com.com',
     description='Store certain configuration variables in database',
-    long_description=__doc__,
+    long_description=long_description,
     packages=['flask_waffleconf'],
     zip_safe=False,
     include_package_data=True,
