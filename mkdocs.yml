@@ -1,0 +1,11 @@
+site_name: Flask-WaffleConf
+theme: readthedocs
+pages:
+    - Home: index.md
+    - Quickstart: quickstart.md
+    - API reference:
+        - 'Configuration': api/configuration.md
+        - 'Model': api/model.md
+        - 'Store': api/store.md
+        - 'WaffleConf': api/waffleconf.md
+        - 'Views': api/views.md

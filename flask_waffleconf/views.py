@@ -91,7 +91,6 @@ def register_waffle(blueprint, endpoint, url, decorators=[]):
 
         Params:
 
-            wconf       -- instantiated WaffleConf object
             blueprint   -- blueprint to register the view in
             endpoint    -- endpoint for the view
             url         -- url for accessing the view

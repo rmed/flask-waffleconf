@@ -24,19 +24,17 @@ from .util import json_iter
 
 
 class _WaffleState(object):
-    """ Store configstore and model for the app state.
+    """ Store configstore for the app state.
 
         Params:
 
             app         -- Flask application instance
             configstore -- WaffleStore instance
-            model       -- Model that stores the variables in database
     """
 
-    def __init__(self, app, configstore, model):
+    def __init__(self, app, configstore):
         self.app = app
         self.configstore = configstore
-        self.model = model
 
         self.form_template = self.app.config.get(
             'WAFFLE_TEMPLATE', 'waffleconf/waffle_form.html')
@@ -81,12 +79,11 @@ class _WaffleState(object):
         iterator = json_iter(configs)
 
         for key, conf in iterator:
-            db_conf = self.configstore.get(self.model, key)
+            db_conf = self.configstore.get(key)
 
             if not db_conf:
                 # Create variable in database
-                db_conf = self.configstore.put(
-                    self.model, key, conf['default'])
+                db_conf = self.configstore.put(key, conf['default'])
 
             result[db_conf.get_key()] = self._parse_type(
                 conf['type'], db_conf.get_value())
@@ -125,6 +122,17 @@ class _WaffleState(object):
                 # Malformed json?
                 return None
 
+        elif ctype == 'int':
+            return int(value)
+
+        elif ctype == 'float':
+            return float(value)
+
+        elif ctype == 'bool':
+            if value == '0':
+                return False
+            else:
+                return True
 
     def update_conf(self, configs):
         """ Update configuration variables in the database. This also updates
@@ -132,9 +140,9 @@ class _WaffleState(object):
 
             Params:
 
-                configs -- dict configuration variables
+                configs -- dict of configuration variables and their values
 
-                The dicts have the following structure:
+                The dict has the following structure:
 
                     {
                         'MY_CONFIG_VAR'  : 'CONFIG_VAL',
@@ -147,7 +155,7 @@ class _WaffleState(object):
         iterator = json_iter(configs)
 
         for key, value in iterator:
-            updated = self.configstore.put(self.model, key, value)
+            updated = self.configstore.put(key, value)
 
             result[key] = self._parse_type(
                 self.app.config['WAFFLE_CONFS'][key]['type'], updated.value)
@@ -161,15 +169,13 @@ class WaffleConf(object):
 
             app         -- Flask application instance
             configstore -- WaffleStore instance
-            model       -- Model that stores the variables in database
     """
 
-    def __init__(self, app=None, configstore=None, model=None):
+    def __init__(self, app=None, configstore=None):
         self.app = app
         self.configstore = configstore
-        self.model = model
 
-        if app and configstore and model:
+        if app and configstore:
             self.init_app(app, configstore)
 
     def init_app(self, app, configstore):
@@ -187,7 +193,7 @@ class WaffleConf(object):
             app.extensions = {}
 
         self.app.extensions['waffleconf'] = _WaffleState(
-            self.app, self.configstore, self.model)
+            self.app, self.configstore)
 
         module = Blueprint(
             'waffleconf',

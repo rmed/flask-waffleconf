@@ -38,9 +38,11 @@ setup(
         'Flask'
     ],
     classifiers=[
+        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
+        'Framework :: Flask',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GPLv2+ License',
+        'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

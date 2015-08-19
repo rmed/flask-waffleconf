@@ -30,11 +30,13 @@ class WaffleStore(object):
 
         Params:
 
-            db -- Database instance
+            db    -- Database instance
+            model -- Model to work with
     """
 
-    def __init__(self, db=None):
-        self.db = None
+    def __init__(self, db=None, model=None):
+        self.db = db
+        self.model = model
 
     def commit(self):
         pass
@@ -55,28 +57,28 @@ class WaffleStore(object):
 class PeeweeWaffleStore(WaffleStore):
     """ Config store for peewee. """
 
-    def delete(self, model, key):
-        record = self.get(model, key)
+    def delete(self, key):
+        record = self.get(self.model, key)
 
         if not record:
             return
 
         record.delete_instance()
 
-    def get(self, model, key):
+    def get(self, key):
         try:
-            return model.get(model.key == key)
+            return self.model.get(self.model.key == key)
 
-        except model.DoesNotExist:
+        except self.model.DoesNotExist:
             # Does not exist
             return None
 
-    def put(self, model, key, value):
-        record = self.get(model, key)
+    def put(self, key, value):
+        record = self.get(key)
 
         if not record:
             # Creating new record
-            record = model()
+            record = self.model()
             record.key = key
 
         record.value = value
