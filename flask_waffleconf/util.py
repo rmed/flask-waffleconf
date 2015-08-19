@@ -18,9 +18,21 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from __future__ import absolute_import
+def json_iter(obj):
+    """ Create an iterator for a JSON object.
 
-from .core import WaffleConf
-from .models import WaffleMixin
-from .store import WaffleStore, PeeweeWaffleStore
-from .views import WaffleView, register_waffle
+        Params:
+
+            obj -- JSON object
+
+        Returns:
+
+            iterator
+    """
+    try:
+        # Python 2.7.x
+        return obj.viewitems()
+
+    except:
+        # Python 3.x
+        return obj.items()

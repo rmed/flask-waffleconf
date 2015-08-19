@@ -21,31 +21,25 @@
 import json
 from flask import current_app, render_template, request
 from flask.views import MethodView
+from .util import json_iter
 
 
 class WaffleView(MethodView):
     """ View for displaying WaffleConf configuration variables in a form
         and update the variables when performing a POST request.
-
-        Params:
-
-            wconf -- instantiated WaffleConf object
     """
 
     def get(self):
+        """ Display a form with all the configuration variables defined in
+            WAFFLE_CONFS.
+        """
         app = current_app
         app_conf = app.config
         state = app.extensions['waffleconf']
 
         configs = []
 
-        try:
-            # Python 2.7.x
-            iterator = app_conf['WAFFLE_CONFS'].viewitems()
-
-        except:
-            # Python 3.x
-            iterator = app_conf['WAFFLE_CONFS'].items()
+        iterator = json_iter(app_conf['WAFFLE_CONFS'])
 
         for key, conf in iterator:
             new_el = {
@@ -68,6 +62,9 @@ class WaffleView(MethodView):
         return render_template(state.form_template, configs=configs)
 
     def post(self):
+        """ Update the values that have been modified and update the application
+            configuration.
+        """
         app = current_app
         state = app.extensions['waffleconf']
         wconfs = app.config['WAFFLE_CONFS']
@@ -75,13 +72,7 @@ class WaffleView(MethodView):
         form = request.form
         to_update = {}
 
-        try:
-            # Python 2.7.x
-            iterator = form.viewitems()
-
-        except:
-            # Python 3.x
-            iterator = form.items()
+        iterator = json_iter(form)
 
         for key, value in iterator:
             updated = state._parse_type(

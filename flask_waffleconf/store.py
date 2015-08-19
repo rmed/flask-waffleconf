@@ -39,7 +39,7 @@ class WaffleStore(object):
     def commit(self):
         pass
 
-    def delete(self, model):
+    def delete(self, model, key):
         """ Remove a configuration variable from the database. """
         raise NotImplementedError
 
@@ -47,30 +47,21 @@ class WaffleStore(object):
         """ Obtain a configuration variable from the database. """
         raise NotImplementedError
 
-    def put(self, model):
+    def put(self, model, key, value):
         """ Insert / Update a configuration variable in the database. """
         raise NotImplementedError
-
-
-class MongoEngineWaffleStore(WaffleStore):
-    """ Config store for MongoEngine. """
-
-    def delete(self, model):
-        model.delete()
-
-    def get(self, model, key):
-        pass
-
-    def put(self, model):
-        model.save()
-        return model
 
 
 class PeeweeWaffleStore(WaffleStore):
     """ Config store for peewee. """
 
-    def delete(self, model):
-        model.delete_instance()
+    def delete(self, model, key):
+        record = self.get(model, key)
+
+        if not record:
+            return
+
+        record.delete_instance()
 
     def get(self, model, key):
         try:
@@ -80,23 +71,16 @@ class PeeweeWaffleStore(WaffleStore):
             # Does not exist
             return None
 
-    def put(self, model):
-        model.save()
-        return model
+    def put(self, model, key, value):
+        record = self.get(model, key)
 
+        if not record:
+            # Creating new record
+            record = model()
+            record.key = key
 
-class SQLAlchemyWaffleStore(WaffleStore):
-    """ Config store for SQLAlchemy. """
+        record.value = value
 
-    def commit(self):
-        self.db.session.commit()
+        record.save()
 
-    def delete(self, model):
-        self.db.session.delete(model)
-
-    def get(self, model, key):
-        pass
-
-    def put(self, model):
-        self.db.session.add(model)
-        return model
+        return record

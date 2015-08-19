@@ -20,6 +20,7 @@
 
 import json
 from flask import Blueprint
+from .util import json_iter
 
 
 class _WaffleState(object):
@@ -77,21 +78,15 @@ class _WaffleState(object):
         """
         result = {}
 
-        try:
-            # Python 2.7.x
-            iterator = configs.viewitems()
-
-        except:
-            # Python 3.x
-            iterator = configs.items()
+        iterator = json_iter(configs)
 
         for key, conf in iterator:
             db_conf = self.configstore.get(self.model, key)
 
             if not db_conf:
                 # Create variable in database
-                new_var = self.model(key=key, value=conf['default'])
-                db_conf = self.configstore.put(new_var)
+                db_conf = self.configstore.put(
+                    self.model, key, conf['default'])
 
             result[db_conf.get_key()] = self._parse_type(
                 conf['type'], db_conf.get_value())
@@ -149,21 +144,13 @@ class _WaffleState(object):
         """
         result = {}
 
-        try:
-            # Python 2.7.x
-            iterator = configs.viewitems()
-
-        except:
-            # Python 3.x
-            iterator = configs.items()
+        iterator = json_iter(configs)
 
         for key, value in iterator:
-            updated = self.configstore.get(self.model, key)
-            updated.value = value
-            self.configstore.put(updated)
+            updated = self.configstore.put(self.model, key, value)
 
             result[key] = self._parse_type(
-                self.app.config['WAFFLE_CONFS'][key]['type'], value)
+                self.app.config['WAFFLE_CONFS'][key]['type'], updated.value)
 
         self.app.config.update(result)
 
