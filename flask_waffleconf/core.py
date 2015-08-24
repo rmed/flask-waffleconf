@@ -20,8 +20,18 @@
 
 from flask import Blueprint
 from .util import json_iter, parse_type
-import time
+
+# Multiprocess imports
+try:
+    import gevent
+    import gevent.monkey
+    gevent.monkey.patch_all()
+
+except ImportError:
+    pass
+
 import redis
+import time
 import threading
 
 
@@ -44,6 +54,7 @@ class _WaffleState(object):
 
         if self.app.config.get('WAFFLE_MULTIPROC', False):
             # Multiprocess update notification
+            print("INIIIIT")
             self._tstamp = time.time()
 
             self._listener = threading.Thread(target=self._listen)
@@ -71,6 +82,7 @@ class _WaffleState(object):
 
         while True:
             for msg in sub.listen():
+                print(msg)
                 # Skip non-messages
                 if not msg['type'] == 'message':
                     continue
