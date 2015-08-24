@@ -21,7 +21,7 @@
 import json
 from flask import current_app, render_template, request
 from flask.views import MethodView
-from .util import json_iter
+from .util import json_iter, parse_type
 
 
 class WaffleView(MethodView):
@@ -75,8 +75,7 @@ class WaffleView(MethodView):
         iterator = json_iter(form)
 
         for key, value in iterator:
-            updated = state._parse_type(
-                wconfs[key]['type'], value)
+            updated = parse_type(wconfs[key]['type'], value)
 
             if updated != app.config[key]:
                 to_update[key] = value
@@ -85,6 +84,7 @@ class WaffleView(MethodView):
         state.update_conf(to_update)
 
         return self.get()
+
 
 def register_waffle(blueprint, endpoint, url, decorators=[]):
     """ Register the WaffleView in the given blueprint.

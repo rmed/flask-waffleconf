@@ -18,9 +18,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import json
 from flask import Blueprint
-from .util import json_iter
+from .util import json_iter, parse_type
+import time
+import redis
+import threading
 
 
 class _WaffleState(object):
@@ -30,16 +32,28 @@ class _WaffleState(object):
 
             app         -- Flask application instance
             configstore -- WaffleStore instance
+
+        This object will update its application configuration and if the
+        `WAFFLE_MULTIPROC` setting is set to True, it will also notify other
+        processes using Redis.
     """
 
     def __init__(self, app, configstore):
         self.app = app
         self.configstore = configstore
 
+        if self.app.config.get('WAFFLE_MULTIPROC', False):
+            # Multiprocess update notification
+            self._tstamp = time.time()
+
+            self._listener = threading.Thread(target=self._listen)
+            self._listener.setDaemon(True)
+            self._listener.start()
+
         self.form_template = self.app.config.get(
             'WAFFLE_TEMPLATE', 'waffleconf/waffle_form.html')
 
-        configs = self.app.config.get('WAFFLE_CONFS', None)
+        configs = self.app.config.get('WAFFLE_CONFS', {})
 
         if not configs:
             return None
@@ -48,6 +62,30 @@ class _WaffleState(object):
 
         # Update app config
         self.app.config.update(parsed)
+
+    def _listen(self):
+        """ Listen in redis for a configuration update notification. """
+        r = redis.client.StrictRedis()
+        sub = r.pubsub()
+        sub.subscribe('waffleconf')
+
+        while True:
+            for msg in sub.listen():
+                # Skip non-messages
+                if not msg['type'] == 'message':
+                    continue
+
+                tstamp = float(msg['data'])
+                print('--------------RECEIVING-------------')
+                print(msg)
+                print(tstamp, self._tstamp)
+                # Compare timestamps and update config if needed
+                if tstamp > self._tstamp:
+                    configs = self.app.config.get('WAFFLE_CONFS', {})
+                    parsed = self._parse_conf(configs)
+
+                    self.app.config.update(parsed)
+                    self._tstamp = tstamp
 
     def _parse_conf(self, configs):
         """ Parse configuration values from the database specified in the
@@ -85,54 +123,10 @@ class _WaffleState(object):
                 # Create variable in database
                 db_conf = self.configstore.put(key, conf['default'])
 
-            result[db_conf.get_key()] = self._parse_type(
+            result[db_conf.get_key()] = parse_type(
                 conf['type'], db_conf.get_value())
 
         return result
-
-    def _parse_type(self, ctype, value):
-        """ Parse the configuration according to the type specified.
-
-            Available types:
-
-                - Boolean   ~> bool
-                - Float     ~> float
-                - Integer   ~> int
-                - JSON      ~> json
-                - Strings   ~> str
-
-            Params:
-
-                ctype  -- type to parse
-                value  -- configuration value obtained from the database
-
-            Returns:
-
-                parsed -- parsed result
-        """
-        if ctype == 'str':
-            # Default type
-            return value
-
-        elif ctype == 'json':
-            try:
-                return json.loads(value)
-
-            except ValueError:
-                # Malformed json?
-                return None
-
-        elif ctype == 'int':
-            return int(value)
-
-        elif ctype == 'float':
-            return float(value)
-
-        elif ctype == 'bool':
-            if value == '0':
-                return False
-            else:
-                return True
 
     def update_conf(self, configs):
         """ Update configuration variables in the database. This also updates
@@ -157,10 +151,21 @@ class _WaffleState(object):
         for key, value in iterator:
             updated = self.configstore.put(key, value)
 
-            result[key] = self._parse_type(
+            result[key] = parse_type(
                 self.app.config['WAFFLE_CONFS'][key]['type'], updated.value)
 
         self.app.config.update(result)
+
+        # Notify other processes
+        if self.app.config.get('WAFFLE_MULTIPROC', False):
+            print('-------------NOTIFYING----------')
+            tstamp = time.time()
+            print(tstamp)
+            self._tstamp = tstamp
+
+            r = redis.client.StrictRedis()
+            r.publish('waffleconf', tstamp)
+
 
 class WaffleConf(object):
     """ Initialize the Flask-WaffleConf extension
@@ -172,9 +177,6 @@ class WaffleConf(object):
     """
 
     def __init__(self, app=None, configstore=None):
-        self.app = app
-        self.configstore = configstore
-
         if app and configstore:
             self.init_app(app, configstore)
 
@@ -189,11 +191,10 @@ class WaffleConf(object):
             Parse the configuration values stored in the database obtained from
             the WAFFLE_CONFS value of the configuration.
         """
-        if not hasattr(self.app, 'extensions'):
+        if not hasattr(app, 'extensions'):
             app.extensions = {}
 
-        self.app.extensions['waffleconf'] = _WaffleState(
-            self.app, self.configstore)
+        app.extensions['waffleconf'] = _WaffleState(app, configstore)
 
         module = Blueprint(
             'waffleconf',

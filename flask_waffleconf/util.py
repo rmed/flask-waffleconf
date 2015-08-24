@@ -18,6 +18,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import json
+
 def json_iter(obj):
     """ Create an iterator for a JSON object.
 
@@ -36,3 +38,47 @@ def json_iter(obj):
     except:
         # Python 3.x
         return obj.items()
+
+def parse_type(ctype, value):
+    """ Parse the configuration according to the type specified.
+
+        Available types:
+
+            - Boolean   ~> bool
+            - Float     ~> float
+            - Integer   ~> int
+            - JSON      ~> json
+            - Strings   ~> str
+
+        Params:
+
+            ctype  -- type to parse
+            value  -- configuration value obtained from the database
+
+        Returns:
+
+            parsed -- parsed result
+    """
+    if ctype == 'str':
+        # Default type
+        return value
+
+    elif ctype == 'json':
+        try:
+            return json.loads(value)
+
+        except ValueError:
+            # Malformed json?
+            return None
+
+    elif ctype == 'int':
+        return int(value)
+
+    elif ctype == 'float':
+        return float(value)
+
+    elif ctype == 'bool':
+        if value == '0':
+            return False
+        else:
+            return True
