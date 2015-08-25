@@ -1,7 +1,7 @@
 # WaffleConf
 
-The `WaffleConf` object stores the previously defined `WaffleStore` and the
-application in order to access its configuration for updates.
+The `WaffleConf` object initializes the application state for performing
+configuration udpates.
 
 Notice that every time there is a change in the values for the variables
 defined in `WAFFLE_CONFS`, the database values and those in `app.config` will
@@ -11,8 +11,8 @@ be refreshed.
 
 #### ***WaffleConf(app=None, configstore=None)***
 
-Initializes the object with the given `app` and `configstore` and calls the
-`init_app()` method.
+Calls the `init_app()` method with the given `app` and `configstore`
+parameters.
 
 ##### Parameters
 
@@ -25,6 +25,7 @@ Initializes the object with the given `app` and `configstore` and calls the
 
 Initializes the state object and registers the `waffleconf` blueprint for
 accessing the default template.
+
 
 # _WaffleState
 
@@ -44,10 +45,18 @@ database, updating the keys in `app.config` where needed.
 
 ### Methods
 
+#### ***_listen()***
+
+Method that initializes the listener when `WAFFLE_MULTIPROC` is set to `True`.
+The listener awaits messages from Redis, checks the *timestamp* of the message
+and if it is greater than the one stored, updates the application configuration
+and the timestamp.
+
+---
+
 #### ***_parse_conf(configs)***
 
 Parse the configuration in the database and store the values in `app.config`.
-This method is only called on startup.
 
 ##### Parameters
 
@@ -61,32 +70,13 @@ This method is only called on startup.
 
 ---
 
-#### ***_parse_type(ctype, value)***
-
-Parse the configuration according to the type specified.
-
-##### Parameters
-
-- `ctype`: string identifying the data type of the variable. Available types:
-
-    - Boolean   ~> bool
-    - Float     ~> float
-    - Integer   ~> int
-    - JSON      ~> json
-    - Strings   ~> str
-
-- `value`: string representation of the value to parse.
-
-##### Returns
-
-Parsed result
-
----
-
 #### ***update_conf(configs)***
 
 Update configuration variables in the database. This also updates the
 application configuration.
+
+When `WAFFLE_MULTIPROC` is set to `True`, this will also notify the update to
+the other application instances.
 
 ##### Parameters
 

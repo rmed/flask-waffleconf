@@ -84,7 +84,7 @@ class _WaffleState(object):
         """ Listen in redis for a configuration update notification. """
         r = redis.client.StrictRedis(
             host=self.app.config.get('WAFFLE_REDIS_HOST', 'localhost'),
-            port=self.app.config.get('WAFFLE_REDIS_POST', 6379))
+            port=self.app.config.get('WAFFLE_REDIS_PORT', 6379))
 
         sub = r.pubsub(ignore_subscribe_messages=True)
         sub.subscribe(self.app.config.get('WAFFLE_REDIS_CHANNEL', 'waffleconf'))

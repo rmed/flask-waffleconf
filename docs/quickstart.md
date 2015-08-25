@@ -9,7 +9,7 @@ $ pip install Flask-WaffleConf
 
 # Configuration
 
-The extension uses the following configuration variables:
+Simple usage of the extension requires the following configuration variables:
 
 - `WAFFLE_CONFS`: Used for specifying the configuration variables that are
   going to be stored in the database. It has the following structure:
@@ -30,8 +30,8 @@ WAFFLE_CONFS = {
 ~~~
 
 - `WAFFLE_TEMPLATE`: Template containing the form used for updating the
-  configuration values. You are highly encouraged to extend the default
-  template.
+  configuration values. **You are highly encouraged to extend the default
+  template.**
 
 # Example Application using peewee as ORM
 
@@ -70,7 +70,7 @@ class ConfModel(peewee.model, WaffleMixin):
 # ...
 
 # Initialize WaffleConf
-configstore = PeeweeWaffleStore(ConfModel)
+configstore = PeeweeWaffleStore(model=ConfModel)
 waffle = WaffleConf(app, configstore)
 
 # Plug the WaffleConf view to any of your Blueprints

@@ -3,9 +3,11 @@ theme: readthedocs
 pages:
     - Home: index.md
     - Quickstart: quickstart.md
+    - Multiprocess deployments: multiproc.md
+    - Configuration: configuration.md
     - API reference:
-        - 'Configuration': api/configuration.md
         - 'Model': api/model.md
         - 'Store': api/store.md
         - 'WaffleConf': api/waffleconf.md
         - 'Views': api/views.md
+        - 'Utils': api/util.md
