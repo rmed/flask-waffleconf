@@ -30,7 +30,7 @@ with open(path.join(here, 'DESCRIPTION.rst')) as f:
 
 setup(
     name='Flask-WaffleConf',
-    version='0.1.0',
+    version='0.2.0',
     url='https://github.com/rmed/flask-waffleconf',
     license='GPLv2+',
     author='Rafael Medina García',

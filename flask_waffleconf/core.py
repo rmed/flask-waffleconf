@@ -22,6 +22,7 @@ from flask import Blueprint
 from .util import json_iter, parse_type
 
 # Multiprocess imports
+# gevent is optional
 try:
     import gevent
     import gevent.monkey
@@ -30,9 +31,15 @@ try:
 except ImportError:
     pass
 
-import redis
-import time
-import threading
+# Redis is required
+try:
+    import redis
+    import time
+    import threading
+    _MULTIPROC = True
+
+except ImportError:
+    _MULTIPROC = False
 
 
 class _WaffleState(object):
@@ -52,9 +59,8 @@ class _WaffleState(object):
         self.app = app
         self.configstore = configstore
 
-        if self.app.config.get('WAFFLE_MULTIPROC', False):
+        if self.app.config.get('WAFFLE_MULTIPROC', False) and _MULTIPROC:
             # Multiprocess update notification
-            print("INIIIIT")
             self._tstamp = time.time()
 
             self._listener = threading.Thread(target=self._listen)
@@ -76,21 +82,21 @@ class _WaffleState(object):
 
     def _listen(self):
         """ Listen in redis for a configuration update notification. """
-        r = redis.client.StrictRedis()
-        sub = r.pubsub()
-        sub.subscribe('waffleconf')
+        r = redis.client.StrictRedis(
+            host=self.app.config.get('WAFFLE_REDIS_HOST', 'localhost'),
+            port=self.app.config.get('WAFFLE_REDIS_POST', 6379))
+
+        sub = r.pubsub(ignore_subscribe_messages=True)
+        sub.subscribe(self.app.config.get('WAFFLE_REDIS_CHANNEL', 'waffleconf'))
 
         while True:
             for msg in sub.listen():
-                print(msg)
                 # Skip non-messages
                 if not msg['type'] == 'message':
                     continue
 
                 tstamp = float(msg['data'])
-                print('--------------RECEIVING-------------')
-                print(msg)
-                print(tstamp, self._tstamp)
+
                 # Compare timestamps and update config if needed
                 if tstamp > self._tstamp:
                     configs = self.app.config.get('WAFFLE_CONFS', {})
@@ -110,14 +116,13 @@ class _WaffleState(object):
 
                 The dicts have the following structure:
 
-                    {
-                        'key'     : 'MY_CONFIG_VAR',
+                    'MY_CONFIG_VAR': {
                         'type'    : <TYPE OF THE VAR>,
                         'desc'    : <TEXT DESCRIPTION OF THE VAR>,
                         'default' : <DEFAULT VALUE>
                     }
 
-            If a key is not found in the database, itwill be created with the
+            If a key is not found in the database, it will be created with the
             default value specified.
 
             Returns:
@@ -169,14 +174,13 @@ class _WaffleState(object):
         self.app.config.update(result)
 
         # Notify other processes
-        if self.app.config.get('WAFFLE_MULTIPROC', False):
-            print('-------------NOTIFYING----------')
+        if self.app.config.get('WAFFLE_MULTIPROC', False) and _MULTIPROC:
             tstamp = time.time()
-            print(tstamp)
             self._tstamp = tstamp
 
             r = redis.client.StrictRedis()
-            r.publish('waffleconf', tstamp)
+            r.publish(self.app.config.get(
+                'WAFFLE_REDIS_CHANNEL', 'waffleconf'), tstamp)
 
 
 class WaffleConf(object):
