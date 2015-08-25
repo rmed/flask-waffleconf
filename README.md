@@ -37,6 +37,16 @@ WAFFLE_CONFS = {
   configuration values. You are highly encouraged to extend the default
   template.
 
+- `WAFFLE_MULTIPROC`: Set it to `True` in order to enable multiprocess use
+  (check [the
+  documentation](https://flask-waffleconf.readthedocs.org/en/latest/multiproc/))
+
+- `WAFFLE_REDIS_HOST`: Redis host to use for notifications.
+
+- `WAFFLE_REDIS_PORT`: Port to use for the Redis connection.
+
+- `WAFFLE_REDIS_CHANNEL`: Channel to use for the notifications.
+
 # Example Application using peewee as ORM
 
 ```python
@@ -74,12 +84,18 @@ class ConfModel(peewee.model, WaffleMixin):
 # ...
 
 # Initialize WaffleConf
-configstore = PeeweeWaffleStore(ConfModel)
+configstore = PeeweeWaffleStore(model=ConfModel)
 waffle = WaffleConf(app, configstore)
 
 # Plug the WaffleConf view to any of your Blueprints
 register_waffle(app, 'waffleconf', '/config')
 ```
+
+# Multiprocess deployments
+
+Since **version 0.2.0**, multiprocess deployments are supported. Check [the
+documentation](https://flask-waffleconf.readthedocs.org/en/latest/multiproc/)
+for more information.
 
 # Documentation
 
