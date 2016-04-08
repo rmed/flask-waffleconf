@@ -18,10 +18,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#
-# Based on flask_security.datastore module from Flask-Security by Matt Wright
-#
-
 
 class WaffleStore(object):
     """ Object for connecting to the application database. Offers common
@@ -30,8 +26,8 @@ class WaffleStore(object):
 
         Params:
 
-            db    -- Database instance
-            model -- Model to work with
+            db    - Database instance
+            model - Model to work with
     """
 
     def __init__(self, db=None, model=None):
@@ -39,31 +35,81 @@ class WaffleStore(object):
         self.model = model
 
     def commit(self):
-        pass
+        """ Commit to database where needed. """
+        raise NotImplementedError
 
     def delete(self, model, key):
-        """ Remove a configuration variable from the database. """
+        """ Remove a configuration variable from the database.
+
+            Returns the deleted record or None if could not delete.
+        """
         raise NotImplementedError
 
     def get(self, model, key):
-        """ Obtain a configuration variable from the database. """
+        """ Obtain a configuration variable from the database.
+
+            Returns the record or None if failed to obtain the record.
+        """
         raise NotImplementedError
 
     def put(self, model, key, value):
-        """ Insert / Update a configuration variable in the database. """
+        """ Insert / Update a configuration variable in the database.
+
+            Returns the updated record or None on error.
+        """
         raise NotImplementedError
+
+
+class AlchemyWaffleStore(WaffleStore):
+    """ Config store for SQLAlchemy. """
+
+    def commit(self):
+        self.db.session.commit()
+
+    def delete(self, key):
+        record = self.model.query.filter_by(key=key).first()
+
+        if not record:
+            return None
+
+        self.db.session.delete(record)
+
+        return record
+
+    def get(self, key):
+        return self.model.query.filter_by(key=key)
+
+    def put(self, key, value):
+        record = self.model.query.filter_by(key=key)
+
+        if not record:
+            # Creating new record
+            record = self.model()
+            record.key = key
+
+        record.value = value
+
+        self.db.session.add(record)
+
+        return record
 
 
 class PeeweeWaffleStore(WaffleStore):
     """ Config store for peewee. """
 
+    def commit(self):
+        if self.db.get_autocommit():
+            self.db.commit()
+
     def delete(self, key):
         record = self.get(self.model, key)
 
-        if not record:
-            return
+        try:
+            record.delete_instance()
+            return record
 
-        record.delete_instance()
+        except:
+            return None
 
     def get(self, key):
         try:
