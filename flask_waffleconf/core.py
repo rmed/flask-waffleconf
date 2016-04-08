@@ -66,13 +66,11 @@ class _WaffleState(object):
             self._listener.setDaemon(True)
             self._listener.start()
 
-        confs = self.app.config.get('WAFFLE_CONFS', {})
-
-        if not confs:
-            return None
-
         # Get configs from database
-        parsed = self.parse_conf(confs)
+        parsed = self.parse_conf()
+
+        if not parsed:
+            return None
 
         # Update app config
         self.app.config.update(parsed)
