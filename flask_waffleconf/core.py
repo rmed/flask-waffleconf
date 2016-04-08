@@ -2,7 +2,7 @@
 #
 # Flask-WaffleConf - https://github.com/rmed/flask-waffleconf
 #
-# Copyright (C) 2015  Rafael Medina García <rafamedgar@gmail.com>
+# Copyright (C) 2015, 2016  Rafael Medina García <rafamedgar@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,10 +18,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from flask import Blueprint
-from .util import json_iter, parse_type
+from . import util
 
-# Multiprocess imports
+# Imports for multiprocess deployments
 # gevent is optional
 try:
     import gevent
@@ -31,7 +30,7 @@ try:
 except ImportError:
     pass
 
-# Redis is required
+# Redis is required for notifying other processes
 try:
     import redis
     import time
@@ -47,12 +46,12 @@ class _WaffleState(object):
 
         Params:
 
-            app         -- Flask application instance
-            configstore -- WaffleStore instance
+            app         - Flask application instance
+            configstore - WaffleStore instance
 
-        This object will update its application configuration and if the
+        This object will update its application's configuration and if the
         `WAFFLE_MULTIPROC` setting is set to True, it will also notify other
-        processes using Redis.
+        processes using Redis channel.
     """
 
     def __init__(self, app, configstore):
@@ -63,25 +62,25 @@ class _WaffleState(object):
             # Multiprocess update notification
             self._tstamp = time.time()
 
-            self._listener = threading.Thread(target=self._listen)
+            self._listener = threading.Thread(target=self._listen_updates)
             self._listener.setDaemon(True)
             self._listener.start()
 
-        self.form_template = self.app.config.get(
-            'WAFFLE_TEMPLATE', 'waffleconf/waffle_form.html')
+        confs = self.app.config.get('WAFFLE_CONFS', {})
 
-        configs = self.app.config.get('WAFFLE_CONFS', {})
-
-        if not configs:
+        if not confs:
             return None
 
-        parsed = self._parse_conf(configs)
+        # Get configs from database
+        parsed = self.parse_conf(confs)
 
         # Update app config
         self.app.config.update(parsed)
 
-    def _listen(self):
-        """ Listen in redis for a configuration update notification. """
+    def _listen_updates(self):
+        """ Listen to redis channel for a configuration update notification
+            using pub/sub.
+        """
         r = redis.client.StrictRedis(
             host=self.app.config.get('WAFFLE_REDIS_HOST', 'localhost'),
             port=self.app.config.get('WAFFLE_REDIS_PORT', 6379))
@@ -105,73 +104,93 @@ class _WaffleState(object):
                     self.app.config.update(parsed)
                     self._tstamp = tstamp
 
-    def _parse_conf(self, configs):
+    def parse_conf(self, keys=[]):
         """ Parse configuration values from the database specified in the
-            `configs` argument. The extension must have been previously
+            `keys` argument. The extension must have been previously
             initialized!
-
-            Params:
-
-                configs -- dict of configuration variables (dicts)
-
-                The dicts have the following structure:
-
-                    'MY_CONFIG_VAR': {
-                        'type'    : <TYPE OF THE VAR>,
-                        'desc'    : <TEXT DESCRIPTION OF THE VAR>,
-                        'default' : <DEFAULT VALUE>
-                    }
 
             If a key is not found in the database, it will be created with the
             default value specified.
 
+            Params:
+
+                confs - list of keys to parse. If the list is empty, then
+                        all the keys known to the application will be used.
+
             Returns:
 
-                result -- dict of the parsed config values
+                result - dict of the parsed config values
         """
+        confs = self.app.config.get('WAFFLE_CONFS', {})
+        if not keys:
+            keys = confs.keys()
+
         result = {}
 
-        iterator = json_iter(configs)
+        for key in keys:
+            # Some things cannot be changed...
+            if key.startswith('WAFFLE_'):
+                continue
 
-        for key, conf in iterator:
-            db_conf = self.configstore.get(key)
+            # No arbitrary keys
+            if key not in confs.keys():
+                continue
 
-            if not db_conf:
-                # Create variable in database
-                db_conf = self.configstore.put(key, conf['default'])
+            stored_conf = self.configstore.get(key)
 
-            result[db_conf.get_key()] = parse_type(
-                conf['type'], db_conf.get_value())
+            if not stored_conf:
+                # Store new record in database
+                value = confs[key].get('default', '')
+                stored_conf = self.configstore.put(key, util.serialize(value))
+
+            else:
+                # Get stored value
+                value = util.deserialize(stored_conf.get_value())
+
+            result[stored_conf.get_key()] = value
 
         return result
 
-    def update_conf(self, configs):
-        """ Update configuration variables in the database. This also updates
-            the application configuration.
+    def update_db(self, new_values):
+        """ Update the configuration values stored in the database and the
+            application's configuration using the given dictionary.
+
+            The provided keys must be defined in the `WAFFLE_CONFS` setting.
 
             Params:
 
-                configs -- dict of configuration variables and their values
+                new_values - dict of configuration variables and their values
 
                 The dict has the following structure:
 
                     {
-                        'MY_CONFIG_VAR'  : 'CONFIG_VAL',
-                        'MY_CONFIG_VAR1' : 'CONFIG_VAL1'
+                        'MY_CONFIG_VAR'  : <CONFIG_VAL>,
+                        'MY_CONFIG_VAR1' : <CONFIG_VAL1>
                     }
 
         """
-        result = {}
+        confs = self.app.config.get('WAFFLE_CONFS', {})
+        to_update = {}
 
-        iterator = json_iter(configs)
+        for key in new_values.keys():
+            # Some things cannot be changed...
+            if key.startswith('WAFFLE_'):
+                continue
 
-        for key, value in iterator:
-            updated = self.configstore.put(key, value)
+            # No arbitrary keys
+            if key not in confs.keys():
+                continue
 
-            result[key] = parse_type(
-                self.app.config['WAFFLE_CONFS'][key]['type'], updated.value)
+            value = new_values[key]
+            updated = self.configstore.put(key, util.serialize(value))
 
-        self.app.config.update(result)
+            to_update[key] = value
+
+        # Update config
+        if not to_update:
+            return
+
+        self.app.config.update(to_update)
 
         # Notify other processes
         if self.app.config.get('WAFFLE_MULTIPROC', False) and _MULTIPROC:
@@ -188,8 +207,8 @@ class WaffleConf(object):
 
         Params:
 
-            app         -- Flask application instance
-            configstore -- WaffleStore instance
+            app         - Flask application instance
+            configstore - WaffleStore instance
     """
 
     def __init__(self, app=None, configstore=None):
@@ -211,10 +230,3 @@ class WaffleConf(object):
             app.extensions = {}
 
         app.extensions['waffleconf'] = _WaffleState(app, configstore)
-
-        module = Blueprint(
-            'waffleconf',
-            __name__,
-            template_folder='templates')
-
-        app.register_blueprint(module)

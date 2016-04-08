@@ -2,7 +2,7 @@
 #
 # Flask-WaffleConf - https://github.com/rmed/flask-waffleconf
 #
-# Copyright (C) 2015  Rafael Medina García <rafamedgar@gmail.com>
+# Copyright (C) 2015, 2016  Rafael Medina García <rafamedgar@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,13 +40,13 @@ class WaffleMixin(object):
 
             Returns:
 
-                key -- configuration key string
+                key - configuration key string
         """
         try:
             return self.key
 
         except AttributeError:
-            raise NotImplementedError("Model does not have 'key' attribute!")
+            raise NotImplementedError("Model does not have attribute 'key'")
 
     def get_value(self):
         """ Obtain the value for the configuration variable.
@@ -56,11 +56,10 @@ class WaffleMixin(object):
 
             Returns:
 
-                value -- configuration value string
+                value - configuration value string
         """
         try:
             return self.value
 
         except AttributeError:
-            raise NotImplementedError(
-                "Model does not have 'value' attribute!")
+            raise NotImplementedError("Model does not have attribute 'value'")

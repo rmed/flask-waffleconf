@@ -2,7 +2,7 @@
 #
 # Flask-WaffleConf - https://github.com/rmed/flask-waffleconf
 #
-# Copyright (C) 2015  Rafael Medina García <rafamedgar@gmail.com>
+# Copyright (C) 2015, 2016  Rafael Medina García <rafamedgar@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -77,10 +77,10 @@ class AlchemyWaffleStore(WaffleStore):
         return record
 
     def get(self, key):
-        return self.model.query.filter_by(key=key)
+        return self.model.query.filter_by(key=key).first()
 
     def put(self, key, value):
-        record = self.model.query.filter_by(key=key)
+        record = self.model.query.filter_by(key=key).first()
 
         if not record:
             # Creating new record

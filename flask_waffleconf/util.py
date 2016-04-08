@@ -2,7 +2,7 @@
 #
 # Flask-WaffleConf - https://github.com/rmed/flask-waffleconf
 #
-# Copyright (C) 2015  Rafael Medina García <rafamedgar@gmail.com>
+# Copyright (C) 2015, 2016  Rafael Medina García <rafamedgar@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,67 +18,21 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import json
+import base64
+import pickle
 
-def json_iter(obj):
-    """ Create an iterator for a JSON object.
+def deserialize(data):
+    """ Deserialize the given data using base64 encoding and pickle.
+        Returns the unpickled object.
 
-        Params:
-
-            obj -- JSON object
-
-        Returns:
-
-            iterator
+        data - data to deserialize (must be in base64 and pickled)
     """
-    try:
-        # Python 2.7.x
-        return obj.viewitems()
+    return pickle.loads(base64.b64decode(data.encode()))
 
-    except:
-        # Python 3.x
-        return obj.items()
+def serialize(data):
+    """ Serialize the given data using pickle and converting it to a base64
+        string.
 
-def parse_type(ctype, value):
-    """ Parse the configuration according to the type specified.
-
-        Available types:
-
-            - Boolean   ~> bool
-            - Float     ~> float
-            - Integer   ~> int
-            - JSON      ~> json
-            - Strings   ~> str
-
-        Params:
-
-            ctype  -- type to parse
-            value  -- configuration value obtained from the database
-
-        Returns:
-
-            parsed -- parsed result
+        data - data to serialize (must be picklable)
     """
-    if ctype == 'str':
-        # Default type
-        return value
-
-    elif ctype == 'json':
-        try:
-            return json.loads(value)
-
-        except ValueError:
-            # Malformed json?
-            return None
-
-    elif ctype == 'int':
-        return int(value)
-
-    elif ctype == 'float':
-        return float(value)
-
-    elif ctype == 'bool':
-        if value == '0':
-            return False
-        else:
-            return True
+    return base64.b64encode(pickle.dumps(data)).decode('utf-8')

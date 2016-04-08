@@ -2,7 +2,7 @@
 #
 # Flask-WaffleConf - https://github.com/rmed/flask-waffleconf
 #
-# Copyright (C) 2015  Rafael Medina García <rafamedgar@gmail.com>
+# Copyright (C) 2015, 2016  Rafael Medina García <rafamedgar@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,9 +20,8 @@
 
 from __future__ import absolute_import
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 from .core import WaffleConf
 from .models import WaffleMixin
-from .store import WaffleStore, PeeweeWaffleStore
-from .views import WaffleView, register_waffle
+from .store import WaffleStore, AlchemyWaffleStore, PeeweeWaffleStore
