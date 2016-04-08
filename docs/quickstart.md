@@ -3,9 +3,9 @@
 **WaffleConf** only has *Flask* as a requirement. You can install the extension
 by running:
 
-~~~
+```
 $ pip install Flask-WaffleConf
-~~~
+```
 
 # Configuration
 
@@ -14,44 +14,38 @@ Simple usage of the extension requires the following configuration variables:
 - `WAFFLE_CONFS`: Used for specifying the configuration variables that are
   going to be stored in the database. It has the following structure:
 
-~~~python
+```python
 WAFFLE_CONFS = {
-    'CONF_VAR1': {
-        'type': 'str',
-        'desc': 'First config var',
-        'default': '0'
+    'MAX_FILESIZE': {
+        'desc': 'Max upload filesize (in bytes)',
+        'default': 1000
     },
-    'CONF_VAR2': {
-        'type': 'int',
-        'desc': 'Second config var',
-        'default': '0'
+
+    'SITENAME': {
+        'desc': 'Name of the site appearing in the header',
+        'default': 'Waffle'
     }
 }
-~~~
-
-- `WAFFLE_TEMPLATE`: Template containing the form used for updating the
-  configuration values. **You are highly encouraged to extend the default
-  template.**
+```
 
 # Example Application using peewee as ORM
 
-~~~python
-from flask import Flask
-from flask.ext.waffleconf import WaffleConf, PeeweeWaffleStore, \
-    WaffleMixin, register_waffle
+```python
+from flask import Flask, current_app
+from flask_waffleconf import WaffleConf, PeeweeWaffleStore, \
+    WaffleMixin
 import peewee
 
 app = Flask(__name__)
 app.config['WAFFLE_CONFS'] = {
-    'CONF_VAR1': {
-        'type': 'str',
-        'desc': 'First config var',
-        'default': '0'
+    'MAX_FILESIZE': {
+        'desc': 'Max upload filesize (in bytes)',
+        'default': 1000
     },
-    'CONF_VAR2': {
-        'type': 'int',
-        'desc': 'Second config var',
-        'default': '0'
+
+    'SITENAME': {
+        'desc': 'Name of the site appearing in the header',
+        'default': 'Waffle'
     }
 }
 
@@ -59,7 +53,7 @@ app.config['WAFFLE_CONFS'] = {
 # db = ...
 
 # Define model
-class ConfModel(peewee.model, WaffleMixin):
+class ConfModel(peewee.Model, WaffleMixin):
     class Meta:
         database = db
 
@@ -73,6 +67,13 @@ class ConfModel(peewee.model, WaffleMixin):
 configstore = PeeweeWaffleStore(model=ConfModel)
 waffle = WaffleConf(app, configstore)
 
-# Plug the WaffleConf view to any of your Blueprints
-register_waffle(app, 'waffleconf', '/config')
-~~~
+@app.route('/')
+def index():
+    """ Display all the configuration variables ."""
+    state = current_app.extensions['waffleconf']
+
+    parsed = state.parse_conf()
+    # {'MAX_FILESIZE': 1000, 'SITENAME': 'Waffle'}
+
+    return parsed['SITENAME']
+```

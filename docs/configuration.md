@@ -3,43 +3,33 @@
 The `WAFFLE_CONFS` variable is used to specify information on each of the
 variables that are going to be stored in the database:
 
-~~~python
+```python
 WAFFLE_CONFS = {
-    'CONF_VAR1': {
-        'type': 'str',
-        'desc': 'First config var',
-        'default': '0'
+    'MAX_FILESIZE': {
+        'desc': 'Max upload filesize (in bytes)',
+        'default': 1000
     },
-    'CONF_VAR2': {
-        'type': 'int',
-        'desc': 'Second config var',
-        'default': '0'
+
+    'SITENAME': {
+        'desc': 'Name of the site appearing in the header',
+        'default': 'Waffle'
     }
 }
-~~~
-
-- `type`: specifies the data type of the variable. Available types are:
-
-    - Boolean   ~> bool
-    - Float     ~> float
-    - Integer   ~> int
-    - JSON      ~> json
-    - Strings   ~> str
+```
 
 - `desc`: human-readable name or short description of the variable
 - `default`: default value when the variable does not exist in the database.
   **Should be a string**
 
+**Changed in `0.3.0`**: the `type` field is deprecated as values are serialized
+when stored in the database and deserialized when obtained with `parse_conf()`.
+
 ---
 
 # `WAFFLE_TEMPLATE`
 
-The extension only uses a single template that contains a form for displaying
-and updating the values.
-
-**You are highly encouraged to extend this template.**
-
-Defaults to `'waffleconf/waffle_form'`.
+**Changed in `0.3.0`**: the `WAFFLE_TEMPLATE` setting is deprecated, as the
+extension is now implemented to be called from user-created views.
 
 ---
 

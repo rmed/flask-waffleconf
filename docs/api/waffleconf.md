@@ -32,9 +32,9 @@ accessing the default template.
 This is the object stored in `app.extensions['waffleconf']`, and is in charge
 of performing the parsing and updating of the configuration variables.
 
-In addition, it stores the form template to use in order to display/update the
-configuration variables. If the `WAFFLE_TEMPLATE` variable is not set in the
-configuration, it will default to `waffleconf/waffle_form.html`.
+**Changed in `0.3.0`**: the extension no longer exposes views or templates.
+Instead, the developer should call the methods of this object from their
+(secured) views.
 
 ### Initialization
 
@@ -45,7 +45,7 @@ database, updating the keys in `app.config` where needed.
 
 ### Methods
 
-#### ***_listen()***
+#### ***_listen_updates()***
 
 Method that initializes the listener when `WAFFLE_MULTIPROC` is set to `True`.
 The listener awaits messages from Redis, checks the *timestamp* of the message
@@ -54,41 +54,42 @@ and the timestamp.
 
 ---
 
-#### ***_parse_conf(configs)***
+#### ***parse_conf(keys=[])***
 
-Parse the configuration in the database and store the values in `app.config`.
+Parse the configuration keys specified.
 
 ##### Parameters
 
-- `configs`: `dict` obtained from `app.config['WAFFLE_CONFS']` which contains
-  information on each variable.
+- `keys`: `list` of keys to parse. If the list is empty, all the keys known to
+  the application will be used
 
 ##### Returns
 
 - `dict`: parsed configuration values with their proper data types using the
-  configuration variable id as key.
+  configuration variable id as key
 
 ---
 
-#### ***update_conf(configs)***
+#### ***update_db(new_values)***
 
-Update configuration variables in the database. This also updates the
+Update configuration variables stored in the database. This also updates the
 application configuration.
 
-When `WAFFLE_MULTIPROC` is set to `True`, this will also notify the update to
-the other application instances.
+When `WAFFLE_MULTIPROC` is set to `True`, this method will also notify the
+update to the other application instances.
 
 ##### Parameters
 
-- `configs`: `dict` of configuration variables and their values
+- `new_values`: `dict` of updated configuration variables and their values
 
 The dict has the following structure:
 
-~~~python
+```python
 {
-    'MY_CONFIG_VAR'  : 'CONFIG_VAL',
-    'MY_CONFIG_VAR1' : 'CONFIG_VAL1'
+    'MY_CONFIG_VAR'  : <CONFIG_VAL>,
+    'MY_CONFIG_VAR1' : <CONFIG_VAL1>
 }
-~~~
+```
 
-Ideally, this dict is obtained from a form.
+This dictionary does not have to include all the keys available, and may be
+used to only update some of the variables.

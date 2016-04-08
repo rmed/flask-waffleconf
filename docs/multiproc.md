@@ -26,37 +26,37 @@ Currently, this can be done in two different ways:
 - Using the [threading](https://docs.python.org/3/library/threading.html)
   module: the extension creates a thread for each application instance that
   will listen to the Redis channel and fetch the configuration from the
-  database when notified.
+  database when notified
 
 - Using the [gevent](http://www.gevent.org/) module that employs *coroutines*
-  and [greenlet](http://greenlet.readthedocs.org/en/latest/) for the same task.
+  and [greenlet](http://greenlet.readthedocs.org/en/latest/) for the same task
 
 
 While the first option is the simplest one, it also means that the application
 will be under the influence of the
 [GIL](https://wiki.python.org/moin/GlobalInterpreterLock). This should not be
 much of an issue due to the listener blocking until a new message is received,
-it may affect the performance of the application.
+but it may affect the performance of the application.
 
 The second option should offer better performance because there is no need to
-use the *GIL*, but may be more complex to configure depending on the
+use the *GIL*, but it may be more complex to configure depending on the
 application server used.
 
-# Setup for multiprocess use
+# Setup for multiprocess deployments
 
 First, you will need to install the `redis` and the `redis-py` module. For
 Debian systems, this would be done like this:
 
-~~~shell
+```shell
 # apt-get install redis-server
 
 $ pip install redis
-~~~
+```
 
-Now we need to set additional configuration variables in the application
-configuration:
+Now we need to set additional configuration variables in the configuration of
+our application:
 
-~~~python
+```python
 # Enable multiprocess use
 WAFFLE_MULTIPROC = True
 
@@ -68,7 +68,7 @@ WAFFLE_REDIS_PORT = 6379
 
 # The channel to listen and send signals to (defaults to 'waffleconf')
 WAFFLE_REDIS_CHANNEL = 'MY_CHANNEL'
-~~~
+```
 
 Once the extension is initialized, the listener will be automatically created.
 

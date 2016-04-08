@@ -1,34 +1,26 @@
-#### ***def json_iter(obj)***
+#### ***deserialize(data)***
 
-Create an iterator for a JSON object that is compatible with both Python 2 and
-Python 3.
+Deserialize the given data (that was serialized using `serialize()`) using
+base64 encoding and pickle.
 
 ##### Parameters
 
-- `obj`: JSON object to iterate
+- `data`: data to deserialize (must be serialized with base64 and pickle)
 
 ##### Returns
 
-Iterator
+Deserialized data
 
 ---
 
-#### ***parse_type(ctype, value)***
+#### ***serialize(data)***
 
-Parse the configuration according to the type specified.
+Serialize the given data using base64 encoding and pickle.
 
 ##### Parameters
 
-- `ctype`: string identifying the data type of the variable. Available types:
-
-    - Boolean   ~> bool
-    - Float     ~> float
-    - Integer   ~> int
-    - JSON      ~> json
-    - Strings   ~> str
-
-- `value`: string representation of the value to parse.
+- `data`: data to serialize (must be picklable)
 
 ##### Returns
 
-Parsed result
+Serialized data string

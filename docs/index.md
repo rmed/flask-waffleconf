@@ -13,7 +13,6 @@ application configuration everytime any of these change.
     - **[Model](api/model.md)**
     - **[Store](api/store.md)**
     - **[WaffleConf](api/waffleconf.md)**
-    - **[Views](api/views.md)**
     - **[Utils](api/util.md)**
 
 # Links
