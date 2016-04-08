@@ -114,7 +114,7 @@ class _WaffleState(object):
 
             Params:
 
-                confs - list of keys to parse. If the list is empty, then
+                keys - list of keys to parse. If the list is empty, then
                         all the keys known to the application will be used.
 
             Returns:
