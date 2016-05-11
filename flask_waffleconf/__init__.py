@@ -20,8 +20,6 @@
 
 from __future__ import absolute_import
 
-__version__ = '0.3.0'
-
 from .core import WaffleConf
 from .models import WaffleMixin
 from .store import WaffleStore, AlchemyWaffleStore, PeeweeWaffleStore

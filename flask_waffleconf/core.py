@@ -21,105 +21,57 @@
 from __future__ import absolute_import
 
 from . import util
-
-# Imports for multiprocess deployments
-# gevent is optional
-try:
-    import gevent
-    import gevent.monkey
-    gevent.monkey.patch_all()
-
-except ImportError:
-    pass
-
-# Redis is required for notifying other processes
-try:
-    import redis
-    import time
-    import threading
-    _MULTIPROC = True
-
-except ImportError:
-    _MULTIPROC = False
+from . import watcher
+import threading
+import time
 
 
 class _WaffleState(object):
-    """ Store configstore for the app state.
+    """Store configstore for the app state.
 
-        Params:
+    This object will update its application's configuration and if the
+    ``WAFFLE_MULTIPROC`` setting is set to True, it will also notify other
+    processes using Redis channel or file timestamp.
 
-            app         - Flask application instance
-            configstore - WaffleStore instance
-
-        This object will update its application's configuration and if the
-        `WAFFLE_MULTIPROC` setting is set to True, it will also notify other
-        processes using Redis channel.
+    Arguments:
+        app: Flask application instance.
+        configstore (WaffleStore): database store.
     """
 
     def __init__(self, app, configstore):
         self.app = app
         self.configstore = configstore
 
-        if self.app.config.get('WAFFLE_MULTIPROC', False) and _MULTIPROC:
-            # Multiprocess update notification
+        # Setup multiprocess notifications
+        if self.app.config.get('WAFFLE_MULTIPROC', False):
+            op_type = self.app.config.get('WAFFLE_WATCHTYPE', 'file')
+
+            self.watch = watcher.get_watcher(op_type)
+            self.notify = watcher.get_notifier(op_type)
+
             self._tstamp = time.time()
 
-            self._listener = threading.Thread(target=self._listen_updates)
-            self._listener.setDaemon(True)
-            self._listener.start()
+            self._watcher = threading.Thread(target=self.watch, args=(self,))
+            self._watcher.setDaemon(True)
+            self._watcher.start()
 
         # Get configs from database
-        parsed = self.parse_conf()
-
-        if not parsed:
-            return None
-
-        # Update app config
-        self.app.config.update(parsed)
-
-    def _listen_updates(self):
-        """ Listen to redis channel for a configuration update notification
-            using pub/sub.
-        """
-        r = redis.client.StrictRedis(
-            host=self.app.config.get('WAFFLE_REDIS_HOST', 'localhost'),
-            port=self.app.config.get('WAFFLE_REDIS_PORT', 6379))
-
-        sub = r.pubsub(ignore_subscribe_messages=True)
-        sub.subscribe(self.app.config.get('WAFFLE_REDIS_CHANNEL', 'waffleconf'))
-
-        while True:
-            for msg in sub.listen():
-                # Skip non-messages
-                if not msg['type'] == 'message':
-                    continue
-
-                tstamp = float(msg['data'])
-
-                # Compare timestamps and update config if needed
-                if tstamp > self._tstamp:
-                    configs = self.app.config.get('WAFFLE_CONFS', {})
-                    parsed = self._parse_conf(configs)
-
-                    self.app.config.update(parsed)
-                    self._tstamp = tstamp
+        self.update_conf()
 
     def parse_conf(self, keys=[]):
-        """ Parse configuration values from the database specified in the
-            `keys` argument. The extension must have been previously
-            initialized!
+        """Parse configuration values from the database.
 
-            If a key is not found in the database, it will be created with the
-            default value specified.
+        The extension must have been previously initialized.
 
-            Params:
+        If a key is not found in the database, it will be created with the
+        default value specified.
 
-                keys - list of keys to parse. If the list is empty, then
-                        all the keys known to the application will be used.
+        Arguments:
+            keys (list[str]): list of keys to parse. If the list is empty, then
+                all the keys known to the application will be used.
 
-            Returns:
-
-                result - dict of the parsed config values
+        Returns:
+            dict of the parsed config values.
         """
         confs = self.app.config.get('WAFFLE_CONFS', {})
         if not keys:
@@ -152,22 +104,18 @@ class _WaffleState(object):
         return result
 
     def update_db(self, new_values):
-        """ Update the configuration values stored in the database and the
-            application's configuration using the given dictionary.
+        """Update database values and application configuration.
 
-            The provided keys must be defined in the `WAFFLE_CONFS` setting.
+        The provided keys must be defined in the ``WAFFLE_CONFS`` setting.
 
-            Params:
-
-                new_values - dict of configuration variables and their values
-
+        Arguments:
+            new_values (dict): dict of configuration variables and their values
                 The dict has the following structure:
 
-                    {
-                        'MY_CONFIG_VAR'  : <CONFIG_VAL>,
-                        'MY_CONFIG_VAR1' : <CONFIG_VAL1>
-                    }
-
+                {
+                    'MY_CONFIG_VAR'  : <CONFIG_VAL>,
+                    'MY_CONFIG_VAR1' : <CONFIG_VAL1>
+                }
         """
         confs = self.app.config.get('WAFFLE_CONFS', {})
         to_update = {}
@@ -182,7 +130,7 @@ class _WaffleState(object):
                 continue
 
             value = new_values[key]
-            updated = self.configstore.put(key, util.serialize(value))
+            self.configstore.put(key, util.serialize(value))
 
             to_update[key] = value
 
@@ -193,22 +141,29 @@ class _WaffleState(object):
         self.app.config.update(to_update)
 
         # Notify other processes
-        if self.app.config.get('WAFFLE_MULTIPROC', False) and _MULTIPROC:
-            tstamp = time.time()
-            self._tstamp = tstamp
+        if self.app.config.get('WAFFLE_MULTIPROC', False):
+            self.notify(self)
 
-            r = redis.client.StrictRedis()
-            r.publish(self.app.config.get(
-                'WAFFLE_REDIS_CHANNEL', 'waffleconf'), tstamp)
+    def update_conf(self):
+        """Update configuration values from database.
+
+        This method should be called when there is an update notification.
+        """
+        parsed = self.parse_conf()
+
+        if not parsed:
+            return None
+
+        # Update app config
+        self.app.config.update(parsed)
 
 
 class WaffleConf(object):
-    """ Initialize the Flask-WaffleConf extension
+    """Initialize the Flask-WaffleConf extension
 
-        Params:
-
-            app         - Flask application instance
-            configstore - WaffleStore instance
+    Arguments:
+        app: Flask application instance
+        configstore (WaffleStore): database store.
     """
 
     def __init__(self, app=None, configstore=None):
@@ -216,15 +171,15 @@ class WaffleConf(object):
             self.init_app(app, configstore)
 
     def init_app(self, app, configstore):
-        """ Initialize the extension for the given application and store.
+        """Initialize the extension for the given application and store.
 
-            Params:
+        Parse the configuration values stored in the database obtained from
+        the ``WAFFLE_CONFS`` value of the configuration.
 
-                app         -- Flask application instance
-                configstore -- WaffleStore instance
+        Arguments:
+            app: Flask application instance
+            configstore (WaffleStore): database store.
 
-            Parse the configuration values stored in the database obtained from
-            the WAFFLE_CONFS value of the configuration.
         """
         if not hasattr(app, 'extensions'):
             app.extensions = {}

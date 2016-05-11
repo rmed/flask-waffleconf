@@ -20,14 +20,14 @@
 
 
 class WaffleStore(object):
-    """ Object for connecting to the application database. Offers common
-        methods that have to be overriden depending on the database type / ORM
-        used.
+    """Object for connecting to the application database.
 
-        Params:
+    Offers common methods that have to be overriden depending on the
+    database type / ORM used.
 
-            db    - Database instance
-            model - Model to work with
+    Arguments:
+        db: Database instance.
+        model: Model to work with.
     """
 
     def __init__(self, db=None, model=None):
@@ -35,33 +35,36 @@ class WaffleStore(object):
         self.model = model
 
     def commit(self):
-        """ Commit to database where needed. """
+        """Commit to database where needed."""
         raise NotImplementedError
 
     def delete(self, model, key):
-        """ Remove a configuration variable from the database.
+        """Remove a configuration variable from the database.
 
-            Returns the deleted record or None if could not delete.
+        Returns:
+            Deleted record or None if it could not be deleted.
         """
         raise NotImplementedError
 
     def get(self, model, key):
-        """ Obtain a configuration variable from the database.
+        """Obtain a configuration variable from the database.
 
-            Returns the record or None if failed to obtain the record.
+        Returns:
+            Record or None if record could not be obtained.
         """
         raise NotImplementedError
 
     def put(self, model, key, value):
-        """ Insert / Update a configuration variable in the database.
+        """Insert / Update a configuration variable in the database.
 
-            Returns the updated record or None on error.
+        Returns:
+            Updated record or None on error.
         """
         raise NotImplementedError
 
 
 class AlchemyWaffleStore(WaffleStore):
-    """ Config store for SQLAlchemy. """
+    """Config store for SQLAlchemy."""
 
     def commit(self):
         self.db.session.commit()
@@ -95,7 +98,7 @@ class AlchemyWaffleStore(WaffleStore):
 
 
 class PeeweeWaffleStore(WaffleStore):
-    """ Config store for peewee. """
+    """Config store for peewee."""
 
     def commit(self):
         if self.db.get_autocommit():

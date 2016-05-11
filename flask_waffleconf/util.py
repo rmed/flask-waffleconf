@@ -22,17 +22,23 @@ import base64
 import pickle
 
 def deserialize(data):
-    """ Deserialize the given data using base64 encoding and pickle.
-        Returns the unpickled object.
+    """Deserialize data using base64 encoding and pickle.
 
-        data - data to deserialize (must be in base64 and pickled)
+    Arguments:
+        data (str): Data to deserialize (must be in base64 and pickled)
+
+    Returns:
+        Unpickled object.
     """
     return pickle.loads(base64.b64decode(data.encode()))
 
 def serialize(data):
-    """ Serialize the given data using pickle and converting it to a base64
-        string.
+    """Serialize data using pickle and converting it to a base64 string.
 
-        data - data to serialize (must be picklable)
+    Arguments:
+        data: data to serialize (must be picklable)
+
+    Returns:
+        Serialized object.
     """
     return base64.b64encode(pickle.dumps(data)).decode('utf-8')
