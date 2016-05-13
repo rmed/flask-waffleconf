@@ -38,27 +38,37 @@ class WaffleStore(object):
         """Commit to database where needed."""
         raise NotImplementedError
 
-    def delete(self, model, key):
+    def delete(self, key):
         """Remove a configuration variable from the database.
 
+        Arguments:
+            key (str): Name of the configuration variable to delete.
+
         Returns:
-            Deleted record or None if it could not be deleted.
+            Deleted record or ``None`` if it could not be deleted.
         """
         raise NotImplementedError
 
-    def get(self, model, key):
+    def get(self, key):
         """Obtain a configuration variable from the database.
 
+        Arguments:
+            key (str): Name of the configuration variable to obtain.
+
         Returns:
-            Record or None if record could not be obtained.
+            Record or ``None`` if record could not be obtained.
         """
         raise NotImplementedError
 
-    def put(self, model, key, value):
+    def put(self, key, value):
         """Insert / Update a configuration variable in the database.
 
+        Arguments:
+            key (str): Name of the configuration variable that is being updated.
+            value: Value to store in the database (serialized).
+
         Returns:
-            Updated record or None on error.
+            Updated record or ``None`` on error.
         """
         raise NotImplementedError
 
