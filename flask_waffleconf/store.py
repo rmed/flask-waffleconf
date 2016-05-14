@@ -99,10 +99,13 @@ class AlchemyWaffleStore(WaffleStore):
             # Creating new record
             record = self.model()
             record.key = key
+            record.value = value
 
-        record.value = value
+            self.db.session.add(record)
 
-        self.db.session.add(record)
+        else:
+            # Updating record
+            record.value = value
 
         return record
 

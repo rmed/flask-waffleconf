@@ -94,6 +94,7 @@ class _WaffleState(object):
                 # Store new record in database
                 value = confs[key].get('default', '')
                 stored_conf = self.configstore.put(key, util.serialize(value))
+                self.configstore.commit()
 
             else:
                 # Get stored value
@@ -131,6 +132,7 @@ class _WaffleState(object):
 
             value = new_values[key]
             self.configstore.put(key, util.serialize(value))
+            self.configstore.commit()
 
             to_update[key] = value
 
