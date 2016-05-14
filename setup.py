@@ -27,15 +27,14 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'DESCRIPTION.rst')) as f:
     long_description = f.read()
 
-
 setup(
     name='Flask-WaffleConf',
-    version='0.2.0',
+    version='0.3.0',
     url='https://github.com/rmed/flask-waffleconf',
     license='GPLv2+',
     author='Rafael Medina García',
     author_email='rafamedgar@gmail.com.com',
-    description='Store certain configuration variables in database',
+    description='Store variables in database and update them at runtime',
     long_description=long_description,
     packages=['flask_waffleconf'],
     zip_safe=False,
