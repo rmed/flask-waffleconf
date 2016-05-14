@@ -1,7 +1,7 @@
 # Flask-WaffleConf [![PyPI version](https://img.shields.io/pypi/v/Flask-WaffleConf.svg)](https://pypi.python.org/pypi/Flask-WaffleConf)
 
-A Flask extension that enables storage of configuration variables in the
-database as well as runtime modification of these variables.
+WaffleConf is a Flask extension that enables storage of configuration variables
+in the database as well as runtime modification of said variables.
 
 **Released under GPLv2+ license.**
 
@@ -13,59 +13,48 @@ $ pip install Flask-WaffleConf
 
 # Configuration
 
-The extension uses the following configuration variables:
+Simple usage of the extension requires the following configuration variables
+(e.g., in your application's `config.py`):
 
-- `WAFFLE_CONFS`: Used for specifying the configuration variables that are
-  going to be stored in the database. It has the following structure:
+- `WAFFLE_CONFS`: used for specifying the configuration variables that are
+    going to be stored in the database. It has the following structure:
 
 ```python
 WAFFLE_CONFS = {
-    'CONF_VAR1': {
-        'type': 'str',
-        'desc': 'First config var',
-        'default': '0'
+    'MAX_FILESIZE': {
+        'desc': 'Max upload filesize (in bytes)',
+        'default': 1000
     },
-    'CONF_VAR2': {
-        'type': 'int',
-        'desc': 'Second config var',
-        'default': '0'
+
+    'SITENAME': {
+        'desc': 'Name of the site appearing in the header',
+        'default': 'Waffle'
     }
 }
 ```
 
-- `WAFFLE_TEMPLATE`: Template containing the form used for updating the
-  configuration values. You are highly encouraged to extend the default
-  template.
+Check the
+[documentation](https://flask-waffleconf.readthedocs.org/en/latest/multiproc/)
+for advanced usage
 
-- `WAFFLE_MULTIPROC`: Set it to `True` in order to enable multiprocess use
-  (check [the
-  documentation](https://flask-waffleconf.readthedocs.org/en/latest/multiproc/))
-
-- `WAFFLE_REDIS_HOST`: Redis host to use for notifications.
-
-- `WAFFLE_REDIS_PORT`: Port to use for the Redis connection.
-
-- `WAFFLE_REDIS_CHANNEL`: Channel to use for the notifications.
-
-# Example Application using peewee as ORM
+# Example Application using SQLAlchemy as ORM
 
 ```python
-from flask import Flask
-from flask.ext.waffleconf import WaffleConf, PeeweeWaffleStore, \
-    WaffleMixin, register_waffle
-import peewee
+from flask import Flask, current_app
+from flask_waffleconf import WaffleConf, AlchemyWaffleStore, \
+    WaffleMixin
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['WAFFLE_CONFS'] = {
-    'CONF_VAR1': {
-        'type': 'str',
-        'desc': 'First config var',
-        'default': '0'
+    'MAX_FILESIZE': {
+        'desc': 'Max upload filesize (in bytes)',
+        'default': 1000
     },
-    'CONF_VAR2': {
-        'type': 'int',
-        'desc': 'Second config var',
-        'default': '0'
+
+    'SITENAME': {
+        'desc': 'Name of the site appearing in the header',
+        'default': 'Waffle'
     }
 }
 
@@ -73,22 +62,29 @@ app.config['WAFFLE_CONFS'] = {
 # db = ...
 
 # Define model
-class ConfModel(peewee.model, WaffleMixin):
-    class Meta:
-        database = db
+class ConfModel(db.Model, WaffleMixin):
+    __tablename__ = 'confs'
 
-    key = peewee.CharField(unique=True)
-    value = peewee.TextField()
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(255), unique=True)
+    value = db.Column(db.Text)
 
 # Create database tables
 # ...
 
 # Initialize WaffleConf
-configstore = PeeweeWaffleStore(model=ConfModel)
+configstore = AlchemyWaffleStore(db=db, model=ConfModel)
 waffle = WaffleConf(app, configstore)
 
-# Plug the WaffleConf view to any of your Blueprints
-register_waffle(app, 'waffleconf', '/config')
+@app.route('/')
+def index():
+    """Display content of configured variable 'SITENAME'."""
+    state = current_app.extensions['waffleconf']
+
+    parsed = state.parse_conf()
+    # {'MAX_FILESIZE': 1000, 'SITENAME': 'Waffle'}
+
+    return parsed['SITENAME']
 ```
 
 # Multiprocess deployments
@@ -101,8 +97,9 @@ for more information.
 
 Documentation is present in the `docs/` directory and also online at
 <https://flask-waffleconf.readthedocs.org>. In order to build the documentation
-from source (you will need MkDocs), run:
+from source (you will need Sphinx), run the following command in the `docs/`
+directory:
 
 ```shell
-$ mkdocs build
+$ make html
 ```
