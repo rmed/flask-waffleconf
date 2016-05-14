@@ -102,7 +102,7 @@ def _redis_watcher(state):
                 state.update_conf()
                 state._tstamp = tstamp
 
-def get_notifier(notifier_type, state):
+def get_notifier(notifier_type):
     """Obtain a notifier function.
 
     Arguments:

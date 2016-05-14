@@ -37,7 +37,7 @@ parse stored values of configuration variables:
     @app.route('/all')
     def get_all():
         """Returns the whole list of stored configuration variables."""
-        state = current_app.config['waffleconf']
+        state = current_app.extensions['waffleconf']
 
         # Get all the variables
         parsed = state.parse_conf() # Returns a dict
@@ -47,7 +47,7 @@ parse stored values of configuration variables:
     @app.route('/<key>')
     def get_key(key):
         """Return the value of a single key."""
-        state = current_app.config['waffleconf']
+        state = current_app.extensions['waffleconf']
 
         # Get variable
         parsed = state.parse_conf([key,]) # Returns a dict
@@ -79,5 +79,5 @@ Similarly, it is also possible to update values at runtime using a custom view:
                 'DESCRIPTION': form.desc.data
             }
 
-            state = current_app.config['waffleconf']
+            state = current_app.extensions['waffleconf']
             state.update_db(vals)
