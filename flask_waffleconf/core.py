@@ -55,9 +55,6 @@ class _WaffleState(object):
             self._watcher.setDaemon(True)
             self._watcher.start()
 
-        # Get configs from database
-        self.update_conf()
-
     def parse_conf(self, keys=[]):
         """Parse configuration values from the database.
 
@@ -166,9 +163,14 @@ class WaffleConf(object):
     Arguments:
         app: Flask application instance
         configstore (WaffleStore): database store.
+
+    Attributes:
+        state (_WaffleState): Direct access to the initialized state object.
     """
 
     def __init__(self, app=None, configstore=None):
+        self.state = None
+
         if app and configstore:
             self.init_app(app, configstore)
 
@@ -186,4 +188,5 @@ class WaffleConf(object):
         if not hasattr(app, 'extensions'):
             app.extensions = {}
 
-        app.extensions['waffleconf'] = _WaffleState(app, configstore)
+        self.state = _WaffleState(app, configstore)
+        app.extensions['waffleconf'] = self.state

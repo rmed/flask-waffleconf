@@ -21,6 +21,9 @@ to create a new one using the ``WaffleStore`` class as a base):
 - :py:class:`~flask_waffleconf.store.PeeweeWaffleStore`: uses ``peewee``
     for the database backend
 
+*Changed in 0.3.1*: stored configurations are not updated when the extension is
+initialized and require manually calling the update method.
+
 .. note::
    Model and store should use the same ORM/library as backend.
 
