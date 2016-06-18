@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - June 18th, 2016
+
+### Changed
+
+- The extension no longer automatically updates stored values when initiated
+
 ## 0.3.0 - May 14th, 2016
 
 ### Added

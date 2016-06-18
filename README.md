@@ -76,6 +76,11 @@ class ConfModel(db.Model, WaffleMixin):
 configstore = AlchemyWaffleStore(db=db, model=ConfModel)
 waffle = WaffleConf(app, configstore)
 
+@app.before_first_request
+def do_before():
+    """Update stored configurations."""
+    waffle.state.update_conf()
+
 @app.route('/')
 def index():
     """Display content of configured variable 'SITENAME'."""
